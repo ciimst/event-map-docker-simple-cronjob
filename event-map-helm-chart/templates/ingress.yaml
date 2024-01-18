@@ -1,0 +1,28 @@
+{{- if .Values.Ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: 64m
+    # nginx.ingress.kubernetes.io/rewrite-target: /afad
+    # nginx.ingress.kubernetes.io/app-root: /afad
+    # nginx.ingress.kubernetes.io/add-base-url: /afad
+    # nginx.ingress.kubernetes.io/affinity: "cookie" 
+    # nginx.ingress.kubernetes.io/session-cookie-path: "/"
+spec:
+  # ingressClassName: nginx
+  rules:
+  - host: {{ .Values.Ingress.Hostname }}
+    http:
+      paths:
+      - path: {{ .Values.Ingress.CronjobPath }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.Svc.Cronjob.name }}
+            port:
+              number: {{ .Values.Svc.Cronjob.port }}
+---
+{{- end }}

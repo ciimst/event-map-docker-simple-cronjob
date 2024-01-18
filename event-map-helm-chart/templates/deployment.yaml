@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.Dep.Cronjob.name }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount.cronjob }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.Dep.Cronjob.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "eventmapchart.postgisNetworkLabels" . | nindent 8 }}
+        app: {{ .Values.Dep.Cronjob.name }}
+    spec:
+      {{- if .Values.Dep.imageCredentials.enabled }}
+      imagePullSecrets:
+        - name: {{ .Values.Dep.imageCredentials.secretUsed }}
+      {{- end}}
+      containers:
+        - image: {{ .Values.Dep.registry }}/{{ .Values.Dep.Cronjob.image.repo }}:{{ .Values.Dep.Cronjob.image.tag }}
+          name: {{ .Values.Dep.Cronjob.name }}
+          {{- if .Values.Dep.Cronjob.command }}
+          command:
+          {{ toYaml .Values.Dep.Cronjob.command | nindent 12 }}
+          {{- end }}
+          {{- with .Values.Config.Cronjob.envFrom }}
+          envFrom:
+              {{- toYaml . | nindent 14 }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.Dep.Cronjob.containerport }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            # tcpSocket:
+            #   port: {{ .Values.Dep.Cronjob.containerport }}
+            httpGet:
+              {{- if .Values.Ingress.enabled }}
+              path: {{ .Values.Ingress.CronjobPath }}{{ .Values.Properties.Cronjob.SERVER_SERVLET_CONTEXTPATH }}/live
+              {{- else }}
+              path: {{ .Values.Properties.Cronjob.SERVER_SERVLET_CONTEXTPATH }}/live
+              {{- end }}
+              port: {{ .Values.Dep.Cronjob.containerport }}
+              {{- if .Values.Properties.Cronjob.SERVER_SSL_ENABLED }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            # tcpSocket:
+            #   port: {{ .Values.Dep.Cronjob.containerport }}
+            httpGet:
+              {{- if .Values.Ingress.enabled }}
+              path: {{ .Values.Ingress.CronjobPath }}{{ .Values.Properties.Cronjob.SERVER_SERVLET_CONTEXTPATH }}/ready
+              {{- else }}
+              path: {{ .Values.Properties.Cronjob.SERVER_SERVLET_CONTEXTPATH }}/ready
+              {{- end }}
+              port: {{ .Values.Dep.Cronjob.containerport }}
+              {{- if .Values.Properties.Cronjob.SERVER_SSL_ENABLED }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}

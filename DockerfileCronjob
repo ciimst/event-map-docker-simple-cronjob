@@ -1,0 +1,21 @@
+FROM event_map_based:1.4 as event_map_based
+FROM event_map_based
+
+#COPY .m2 /root/.m2
+
+COPY event-map-hibernate-entities /event-map-hibernate-entities
+RUN cd /event-map-hibernate-entities && mvn install 
+
+RUN cd /
+
+
+COPY event-map-cronjob/src src
+COPY event-map-cronjob/pom.xml pom.xml
+RUN mvn package -DskipTests
+
+RUN cd /target && mv event-map-cronjob-1.4.30.jar event-map-cronjob.jar
+
+
+ # Set environment variables
+ENV TZ=Europe/Istanbul
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

@@ -1,0 +1,189 @@
+appVersion: v1
+
+Dep:
+
+  registry: 177.177.0.236:5000
+
+  Cronjob:
+    name: event-map-cronjob
+    image:
+      repo: event_map_cronjob
+      tag: 1.4.30
+    command: ["java", "-Xms1g", "-Xmx2g", "-jar", "/target/event-map-cronjob.jar"]
+    containerport: 8444
+
+  Postgre:
+    name: postgres-postgis
+    image:
+      repo: postgis/postgis
+      tag: 13-3.3
+    containerport: 5432
+
+  imageCredentials:
+    enabled: false
+    secretCreated: regsecret
+    secretUsed: regsecret
+    username: registryUser
+    password: registryPass
+
+Svc:
+  Cronjob:
+    name: event-map-cronjob
+    port: 8444
+    target_port: 8444
+  Postgre:
+    port: 5432
+    target_port: 5432
+  type: ClusterIP
+
+PostgisNetworkName: eventmap-network
+PostgisServiceName: eventmap-postgres
+
+postgresql:
+  enabled: true
+  fullnameOverride: "eventmap-postgres"
+  image:
+    registry: "177.177.0.236:5000"
+  global:
+    auth:
+      postgresPassword: "1qaz2wsx-"
+      username: "imst"
+      password: "1qaz2wsx-"
+      database: "event_map"
+  primary:
+    initdb:
+      user: "postgres"
+      password: "1qaz2wsx-"
+
+redis:
+  enabled: true
+  image:
+    registry: "177.177.0.236:5000"
+  global:
+    redis:
+      password: "1qaz2wsx-"
+  fullnameOverride: "eventmap-redis"
+  master:
+    containerPorts:
+      redis: 6379
+  replica:
+    replicaCount: 0
+
+imageLocation: docker.io/library
+
+imagePullPolicy: Always
+replicaCount:
+  cronjob: 1
+
+Properties:
+  Cronjob:
+    SERVER_PORT: 8444
+    SERVER_SERVLET_CONTEXTPATH: /afad
+    BUILD_VERSION: "-base"
+    CUSTOM_SERVLET_SESSION_TIMEOUT: 30m
+    APPLICATION_TITLE: AFAD | Map
+    EVENT_RESERVED1: Reserved 1
+    EVENT_RESERVED2: Reserved 2
+    EVENT_RESERVED3: Reserved 3
+    EVENT_RESERVED4: Reserved 4
+    EVENT_RESERVED5: Reserved 5
+    SETTINGS_UPDATE_INITIAL_DELAY: 2000
+    SETTINGS_UPDATE_INTERVAL: 60000
+    COUNT_EVENTS_TIME_UPDATE_INITIAL_DELAY: 1000 
+    COUNT_EVENTS_TIME_UPDATE_INTERVAL: 1800000 #integerEnv veya int ile cözülüyor
+    CRONJOB_ALARM_CHECK_SIZE: 500
+    SPRING_THYMELEAF_ENCODING: UTF-8
+    SPRING_THYMELEAF_CACHE: false
+    SPRING_MESSAGES_BASENAME: i18n/messages
+    SPRING_MESSAGES_CACHEDURATION: 10
+    SPRING_MESSAGES_ENCODING: UTF-8
+    SPRING_RESOURCES_CACHE_PERIOD: 604800
+    DATATABLE_ERROR_MODE: none
+    DATATABLE_PAGE_LENGTH: 15
+    SERVER_ERROR_WHITELABEL_ENABLED: false
+    MASTER_DATASOURCE_JDBCURL: jdbc:postgresql://eventmap-postgres:5432/event_map								 
+    MASTER_DATASOURCE_USERNAME: imst      
+    MASTER_DATASOURCE_PASSWORD: ENC(QCyINqUdPKfVkTo1DiYbzLVCs62W9GRDodZRdscYLDekFo0s+Ia35EawRlNMXm1x)
+    JASYPT_ENCRYPTOR_ALGORITHM: PBEWithHMACSHA512AndAES_256
+    JASYPT_ENCRYPTOR_PASSWORD: qwerty123
+    JASYPT_ENCRYPTOR_IV_GENERATOR_CLASSNAME: org.jasypt.iv.RandomIvGenerator
+    MASTER_DATASOURCE_DRIVERCLASSNAME: org.postgresql.Driver 
+    MASTER_DATASOURCE_MAXIMUMPOOLSIZE: 5
+    MASTER_DATASOURCE_MINIMUMIDLE: 2
+    MASTER_DATASOURCE_JPA_SHOWSQL: false
+    JAVAX_NET_SSL_TRUSTSTORE: /cacerts.jks
+    JAVAX_NET_SSL_TRUSTSTOREPASSWORD: ENC(ozn0zv3BcWJuCymog1HsKemj7hx2I2vu1Xvgg/Jc4/3slFB2fnaaG7vV/ovhsuoQ)
+    SPRING_MAIN_ALLOWBEANDEFINITIONOVERRIDING: true
+    SERVER_SSL_ENABLED: true
+    SERVER_SSL_KEYSTORETYPE: PKCS12
+    SERVER_SSL_KEYSTORE: classpath:keystore/cacerts.p12
+    SERVER_SSL_KEYSTOREPASSWORD: ENC(ozn0zv3BcWJuCymog1HsKemj7hx2I2vu1Xvgg/Jc4/3slFB2fnaaG7vV/ovhsuoQ)
+    LOGGING_LEVEL_COM_IMST_EVENT_MAP: WARN
+    LOGGING_LEVEL_COM_ZAXXER_HIKARI_HIKARICONFIG: WARN
+    LOGGING_LEVEL_COM_ZAXXER_HIKARI_POOL: WARN
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: WARN
+    LOGGING_LEVEL_ORG_HIBERNATE: ERROR
+    LOGGING_LEVEL_COM_GITHUB: WARN
+    LOGGING_LEVEL_ORG_THYMELEAF: WARN
+    LOGGING_LEVEL_ORG_APACHE_HTTP: WARN
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_BOOT_CONTEXT_WEB_ERRORPAGEFILTER: OFF
+    S3SERVICEURL: https://s3.eu-north-1.amazonaws.com
+    S3ACCESSKEY: AKIAQHKF3XT2Z4AK24N3
+    S3SECRETKEY: 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
+    S3BUCKETNAME: imstbucket
+    S3REGION: eu-north-1
+    PGRESTORE_LOCATION: /usr/lib/postgresql/15/bin/pg_restore
+    PGDUMP_LOCATION: /usr/lib/postgresql/15/bin/pg_dump
+    S3DUMPSPATH: event-map/dumps
+
+Ingress:
+  enabled: true
+  Hostname: test.eventmap.com
+  CronjobPath: /cronjob
+
+
+Config:
+  Cronjob:
+    envFrom:
+    - configMapRef:
+        name: config-cronjob
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+livenessProbe:
+  enabled: false
+  initialDelaySeconds: 40 #Default 0 
+  periodSeconds: 15 #Default 10 
+  timeoutSeconds: 5 #Default 1 
+  failureThreshold: 6 #Default 3
+  successThreshold: 1 #Default 1 
+
+readinessProbe:
+  enabled: false
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 10
+  successThreshold: 1
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

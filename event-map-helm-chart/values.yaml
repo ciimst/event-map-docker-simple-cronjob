@@ -8,7 +8,7 @@ Dep:
     name: event-map-cronjob
     image:
       repo: event_map_cronjob
-      tag: 1.4.30
+      tag: 1.4.6
     command: ["java", "-Xms1g", "-Xmx2g", "-jar", "/target/event-map-cronjob.jar"]
     containerport: 8444
 
